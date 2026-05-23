@@ -478,7 +478,17 @@ function RepoRow({
                 )}
               </Button>
             )}
+            {done && gtmDone && judgeDone && (
+              <Link
+                to="/u/$username/$repo"
+                params={{ username: repo.owner?.login ?? "", repo: repo.name }}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md border border-primary/40 px-2.5 font-mono text-xs text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Share2 className="size-3" /> view memo
+              </Link>
+            )}
             {state.status === "error" && (
+
               <span className="font-mono text-xs text-destructive">{state.message}</span>
             )}
             {gtmState.status === "error" && (
