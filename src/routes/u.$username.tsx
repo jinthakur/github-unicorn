@@ -101,7 +101,7 @@ function UserPage() {
         ) : reposQ.data && reposQ.data.length > 0 ? (
           <div className="grid gap-3">
             {reposQ.data.slice(0, 10).map((repo, i) => (
-              <RepoRow key={repo.id} repo={repo} rank={i + 1} />
+              <RepoRow key={repo.id} repo={repo} rank={i + 1} owner={username} />
             ))}
           </div>
         ) : (
