@@ -169,49 +169,128 @@ function ProfileHeader({ user }: { user: UserProfile }) {
   );
 }
 
-function RepoRow({ repo, rank }: { repo: ScoredRepo; rank: number }) {
+function RepoRow({ repo, rank, owner }: { repo: ScoredRepo; rank: number; owner: string }) {
+  const analyzeFn = useServerFn(analyzeRepo);
+  const m = useMutation({
+    mutationFn: () =>
+      analyzeFn({
+        data: {
+          repo: {
+            name: repo.name,
+            description: repo.description,
+            language: repo.language,
+            stars: repo.stargazers_count,
+            forks: repo.forks_count,
+            topics: repo.topics ?? [],
+            daysSincePush: repo.daysSincePush,
+            owner,
+          },
+        },
+      }),
+  });
+
   return (
-    <a
-      href={repo.html_url}
-      target="_blank"
-      rel="noreferrer"
-      className="group flex items-start gap-4 rounded-lg border border-border bg-card/60 p-4 backdrop-blur transition-all hover:border-primary/50 hover:bg-card"
-    >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-sm font-bold text-primary">
-        {rank}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-3">
-          <h3 className="truncate font-mono text-base font-semibold text-foreground group-hover:text-primary transition-colors">
-            {repo.name}
-          </h3>
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">
-            score <span className="text-accent">{repo.score}</span>
-          </span>
+    <div className="rounded-lg border border-border bg-card/60 p-4 backdrop-blur transition-all hover:border-primary/50">
+      <div className="flex items-start gap-4">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-sm font-bold text-primary">
+          {rank}
         </div>
-        {repo.description && (
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{repo.description}</p>
-        )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-xs text-muted-foreground">
-          {repo.language && (
-            <span className="flex items-center gap-1">
-              <span className="size-2 rounded-full bg-accent" /> {repo.language}
-            </span>
-          )}
-          <span className="flex items-center gap-1"><Star className="size-3" /> {repo.stargazers_count}</span>
-          <span className="flex items-center gap-1"><GitFork className="size-3" /> {repo.forks_count}</span>
-          <span>pushed {formatDays(repo.daysSincePush)}</span>
-          {repo.signals.map((s) => (
-            <span
-              key={s}
-              className={`rounded border px-1.5 py-px text-[10px] uppercase tracking-wider ${signalClass(s)}`}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <a
+              href={repo.html_url}
+              target="_blank"
+              rel="noreferrer"
+              className="group flex items-baseline gap-1.5 truncate font-mono text-base font-semibold text-foreground hover:text-primary transition-colors"
             >
-              {s}
+              <span className="truncate">{repo.name}</span>
+              <ExternalLink className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </a>
+            <span className="shrink-0 font-mono text-xs text-muted-foreground">
+              score <span className="text-accent">{repo.score}</span>
             </span>
-          ))}
+          </div>
+          {repo.description && (
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{repo.description}</p>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-xs text-muted-foreground">
+            {repo.language && (
+              <span className="flex items-center gap-1">
+                <span className="size-2 rounded-full bg-accent" /> {repo.language}
+              </span>
+            )}
+            <span className="flex items-center gap-1"><Star className="size-3" /> {repo.stargazers_count}</span>
+            <span className="flex items-center gap-1"><GitFork className="size-3" /> {repo.forks_count}</span>
+            <span>pushed {formatDays(repo.daysSincePush)}</span>
+            {repo.signals.map((s) => (
+              <span
+                key={s}
+                className={`rounded border px-1.5 py-px text-[10px] uppercase tracking-wider ${signalClass(s)}`}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+          <div className="mt-3">
+            <Button
+              size="sm"
+              variant={m.data ? "outline" : "default"}
+              onClick={() => m.mutate()}
+              disabled={m.isPending}
+              className="h-7 gap-1.5 font-mono text-xs"
+            >
+              {m.isPending ? (
+                <><Loader2 className="size-3 animate-spin" /> analyzing…</>
+              ) : m.data ? (
+                <><Zap className="size-3" /> re-analyze</>
+              ) : (
+                <><Zap className="size-3" /> analyze with AI</>
+              )}
+            </Button>
+          </div>
+          {m.error && (
+            <p className="mt-2 font-mono text-xs text-destructive">{(m.error as Error).message}</p>
+          )}
+          {m.data && <AnalysisPanel a={m.data} />}
         </div>
       </div>
-    </a>
+    </div>
+  );
+}
+
+function AnalysisPanel({ a }: { a: UnicornAnalysis }) {
+  const tier =
+    a.unicornScore >= 70 ? "text-primary border-primary/40"
+    : a.unicornScore >= 40 ? "text-accent border-accent/40"
+    : "text-muted-foreground border-border";
+  return (
+    <div className="mt-3 rounded-md border border-border bg-background/40 p-3 text-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <Sparkles className="size-3 text-accent" /> unicorn verdict
+        </div>
+        <div className={`rounded border px-2 py-0.5 font-mono text-xs ${tier}`}>
+          {a.unicornScore}/100
+        </div>
+      </div>
+      <p className="mt-2 font-semibold text-foreground">{a.verdict}</p>
+      <p className="mt-2 text-muted-foreground">{a.thesis}</p>
+      <div className="mt-3">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-accent">monetization</span>
+        <p className="mt-0.5 text-muted-foreground">{a.monetization}</p>
+      </div>
+      <div className="mt-3">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-destructive">risks</span>
+        <ul className="mt-1 space-y-1">
+          {a.risks.map((r, i) => (
+            <li key={i} className="flex items-start gap-1.5 text-muted-foreground">
+              <AlertTriangle className="mt-0.5 size-3 shrink-0 text-destructive/70" />
+              <span>{r}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
