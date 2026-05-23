@@ -110,14 +110,24 @@ function ChatPanel({
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-        <div>
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 px-4 py-3">
+        <div className="min-w-1">
           <h3 className="font-mono text-sm font-semibold">// interact</h3>
           <p className="font-mono text-[10px] text-muted-foreground">
             Stress-test, add judges, or revise GTM.
           </p>
         </div>
-      </div>
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 gap-1.5 font-mono text-[10px]"
+        >
+          <a href="/pitch-deck.pptx" download="graveyard-to-unicorn-pitch.pptx">
+            <Download className="size-3" /> pitch.pptx
+          </a>
+        </Button>
+      </div>],
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {error && (
