@@ -620,3 +620,67 @@ function signalClass(s: string) {
       return "border-border text-muted-foreground";
   }
 }
+
+function JudgePanel({ v }: { v: VcVerdict }) {
+  const rec = v.recommendation;
+  const recMeta =
+    rec === "term_sheet"
+      ? { label: "TERM SHEET", className: "border-primary/60 bg-primary/15 text-primary", icon: <ThumbsUp className="size-3" /> }
+      : rec === "explore"
+      ? { label: "EXPLORE", className: "border-accent/60 bg-accent/15 text-accent", icon: <HelpCircle className="size-3" /> }
+      : { label: "PASS", className: "border-destructive/60 bg-destructive/15 text-destructive", icon: <ThumbsDown className="size-3" /> };
+
+  return (
+    <div className="mt-3 rounded-md border border-accent/30 bg-accent/5 p-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-widest text-accent">
+        <Gavel className="size-3" /> vc partner verdict
+        <span className={`ml-1 inline-flex items-center gap-1 rounded border px-1.5 py-px text-[10px] ${recMeta.className}`}>
+          {recMeta.icon} {recMeta.label}
+        </span>
+        <span className="ml-auto rounded border border-border/60 px-1.5 py-px font-mono text-[10px] text-muted-foreground">
+          conviction {v.conviction}/100
+        </span>
+      </div>
+
+      <p className="mt-3 text-base font-semibold leading-snug text-foreground">
+        &ldquo;{v.oneLiner}&rdquo;
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-destructive">
+            <ThumbsDown className="size-3" /> objections
+          </span>
+          <ul className="mt-1 space-y-1">
+            {v.objections.map((o, i) => (
+              <li key={i} className="flex gap-1.5 text-xs text-muted-foreground">
+                <span className="mt-0.5 font-mono text-[9px] text-destructive/70">{String(i + 1).padStart(2, "0")}</span>
+                <span>{o}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-primary">
+            <HelpCircle className="size-3" /> diligence questions
+          </span>
+          <ul className="mt-1 space-y-1">
+            {v.diligence.map((d, i) => (
+              <li key={i} className="flex gap-1.5 text-xs text-muted-foreground">
+                <span className="mt-0.5 font-mono text-[9px] text-primary/70">Q{i + 1}</span>
+                <span>{d}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded border border-border/50 bg-background/40 p-2.5">
+        <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-accent">
+          <Lightbulb className="size-3" /> change my mind
+        </span>
+        <p className="mt-0.5 text-xs text-muted-foreground">{v.changeMyMind}</p>
+      </div>
+    </div>
+  );
+}
