@@ -68,6 +68,7 @@ function UserPage() {
   const { username } = Route.useParams();
   const analyzeFn = useServerFn(analyzeRepo);
   const gtmFn = useServerFn(generateGtm);
+  const judgeFn = useServerFn(judgeRepo);
 
   const userQ = useQuery({
     queryKey: ["gh-user", username],
@@ -83,7 +84,40 @@ function UserPage() {
 
   const [analyses, setAnalyses] = useState<Record<number, AnalysisState>>({});
   const [gtms, setGtms] = useState<Record<number, GtmState>>({});
+  const [judges, setJudges] = useState<Record<number, JudgeState>>({});
   const [batchRunning, setBatchRunning] = useState(false);
+
+  const runJudge = useCallback(
+    async (repo: ScoredRepo) => {
+      const a = analyses[repo.id];
+      const g = gtms[repo.id];
+      if (a?.status !== "done" || g?.status !== "done") return;
+      setJudges((s) => ({ ...s, [repo.id]: { status: "pending" } }));
+      try {
+        const data = await judgeFn({
+          data: {
+            repo: {
+              name: repo.name,
+              owner: username,
+              description: repo.description,
+              language: repo.language,
+              stars: repo.stargazers_count,
+              daysSincePush: repo.daysSincePush,
+            },
+            analysis: a.data,
+            gtm: g.data,
+          },
+        });
+        setJudges((s) => ({ ...s, [repo.id]: { status: "done", data } }));
+      } catch (e) {
+        setJudges((s) => ({
+          ...s,
+          [repo.id]: { status: "error", message: e instanceof Error ? e.message : "failed" },
+        }));
+      }
+    },
+    [judgeFn, analyses, gtms, username],
+  );
 
   const runGtm = useCallback(
     async (repo: ScoredRepo) => {
