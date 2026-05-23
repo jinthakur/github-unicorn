@@ -10,6 +10,7 @@ const GtmInput = z.object({
     topics: z.array(z.string().max(80)).max(30),
     owner: z.string().min(1).max(120),
   }),
+  revisionNote: z.string().min(1).max(1000).optional(),
 });
 
 export type GtmInputType = z.infer<typeof GtmInput>;
