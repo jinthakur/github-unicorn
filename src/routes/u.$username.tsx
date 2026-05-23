@@ -24,14 +24,17 @@ export const Route = createFileRoute("/u/$username")({
   component: UserPage,
   errorComponent: ({ error, reset }) => {
     const router = useRouter();
+    const is404 = /not found|404/i.test(error.message);
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center">
-        <AlertCircle className="mx-auto mb-4 size-10 text-destructive" />
-        <h1 className="text-2xl font-bold">Something broke</h1>
-        <p className="mt-2 font-mono text-sm text-muted-foreground">{error.message}</p>
+        {is404 ? <Skull className="mx-auto mb-4 size-10 text-muted-foreground" /> : <AlertCircle className="mx-auto mb-4 size-10 text-destructive" />}
+        <h1 className="text-2xl font-bold">{is404 ? "Ghost username" : "Something broke"}</h1>
+        <p className="mt-2 font-mono text-sm text-muted-foreground">
+          {is404 ? "No GitHub user by that name. Check the spelling?" : error.message}
+        </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Button onClick={() => { router.invalidate(); reset(); }}>Retry</Button>
-          <Button variant="outline" asChild><Link to="/">← Home</Link></Button>
+          {!is404 && <Button onClick={() => { router.invalidate(); reset(); }}>Retry</Button>}
+          <Button variant="outline" asChild><Link to="/">← Try another username</Link></Button>
         </div>
       </div>
     );

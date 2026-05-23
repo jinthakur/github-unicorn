@@ -20,16 +20,24 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
+function parseUsername(raw: string): string {
+  let s = raw.trim().replace(/^@/, "");
+  const m = s.match(/github\.com\/([^/?#\s]+)/i);
+  if (m) s = m[1];
+  return s.replace(/[^a-zA-Z0-9-]/g, "");
+}
+
 function Landing() {
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
 
   const handleAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
-    const u = username.trim().replace(/^@/, "");
+    const u = parseUsername(username);
     if (!u) return;
     navigate({ to: "/u/$username", params: { username: u } });
   };
+
 
 
   return (
@@ -92,15 +100,18 @@ function Landing() {
             </p>
           </form>
 
-          {/* Sample chip */}
+          {/* Sample chips */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2 font-mono text-xs">
             <span className="text-muted-foreground">try:</span>
-            <button
-              onClick={() => navigate({ to: "/u/$username", params: { username: "forrestpan" } })}
-              className="rounded border border-border bg-card/40 px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-            >
-              forrestpan
-            </button>
+            {["forrestpan", "torvalds", "sindresorhus", "tj"].map((u) => (
+              <button
+                key={u}
+                onClick={() => navigate({ to: "/u/$username", params: { username: u } })}
+                className="rounded border border-border bg-card/40 px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              >
+                {u}
+              </button>
+            ))}
           </div>
         </div>
       </section>
