@@ -201,7 +201,8 @@ function MemoPage() {
   };
 
   return (
-    <main className="min-h-screen scanline">
+    <main className="min-h-screen scanline flex flex-col lg:flex-row">
+      <div className="flex-1 min-w-1">
       <nav className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
         <Link to="/" className="flex items-center gap-2 font-mono text-sm hover:text-primary transition-colors">
           <Terminal className="size-4 text-primary" />
