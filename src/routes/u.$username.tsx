@@ -2,11 +2,12 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle, Rocket, Target, DollarSign, Users } from "lucide-react";
+import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle, Rocket, Target, DollarSign, Users, Gavel, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchUser, fetchRepos, scoreRepos, type ScoredRepo, type UserProfile } from "@/lib/github";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
 import { generateGtm, type GtmPlan } from "@/lib/gtm.functions";
+import { judgeRepo, type VcVerdict } from "@/lib/judge.functions";
 
 type AnalysisState =
   | { status: "idle" }
