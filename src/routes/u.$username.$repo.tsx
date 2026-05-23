@@ -166,9 +166,10 @@ export const Route = createFileRoute("/u/$username/$repo")({
 });
 
 function MemoPage() {
-  const { repo, analysis, gtm, verdict } = Route.useLoaderData();
+  const { repo, analysis, gtm, verdict } = Route.useLoaderData() as MemoData;
   const { username } = Route.useParams();
   const [copied, setCopied] = useState(false);
+
 
   const rec = verdict.recommendation;
   const recMeta =
