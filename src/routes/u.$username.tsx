@@ -359,22 +359,28 @@ function RepoRow({
   rank,
   state,
   gtmState,
+  judgeState,
   onAnalyze,
   onGtm,
+  onJudge,
   disabled,
 }: {
   repo: ScoredRepo;
   rank: number;
   state: AnalysisState;
   gtmState: GtmState;
+  judgeState: JudgeState;
   onAnalyze: () => void;
   onGtm: () => void;
+  onJudge: () => void;
   disabled: boolean;
 }) {
   const done = state.status === "done" ? state.data : null;
   const pending = state.status === "pending";
   const gtmDone = gtmState.status === "done" ? gtmState.data : null;
   const gtmPending = gtmState.status === "pending";
+  const judgeDone = judgeState.status === "done" ? judgeState.data : null;
+  const judgePending = judgeState.status === "pending";
 
   return (
     <div className="rounded-lg border border-border bg-card/60 p-4 backdrop-blur transition-all hover:border-primary/50">
@@ -455,15 +461,36 @@ function RepoRow({
                 )}
               </Button>
             )}
+            {done && gtmDone && (
+              <Button
+                size="sm"
+                variant={judgeDone ? "outline" : "secondary"}
+                onClick={onJudge}
+                disabled={judgePending}
+                className="h-7 gap-1.5 font-mono text-xs border-accent/40 hover:border-accent"
+              >
+                {judgePending ? (
+                  <><Loader2 className="size-3 animate-spin" /> convening…</>
+                ) : judgeDone ? (
+                  <><Gavel className="size-3" /> re-judge</>
+                ) : (
+                  <><Gavel className="size-3" /> get VC verdict</>
+                )}
+              </Button>
+            )}
             {state.status === "error" && (
               <span className="font-mono text-xs text-destructive">{state.message}</span>
             )}
             {gtmState.status === "error" && (
               <span className="font-mono text-xs text-destructive">{gtmState.message}</span>
             )}
+            {judgeState.status === "error" && (
+              <span className="font-mono text-xs text-destructive">{judgeState.message}</span>
+            )}
           </div>
           {done && <AnalysisPanel a={done} />}
           {gtmDone && <GtmPanel g={gtmDone} />}
+          {judgeDone && <JudgePanel v={judgeDone} />}
         </div>
       </div>
     </div>
