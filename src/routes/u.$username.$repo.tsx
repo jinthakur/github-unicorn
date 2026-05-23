@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, Star, GitFork, Sparkles, Rocket, Gavel, Target, DollarSign, Users, AlertTriangle, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Terminal, Share2, AlertCircle, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star, GitFork, Sparkles, Rocket, Gavel, Target, DollarSign, Users, AlertTriangle, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Terminal, Share2, AlertCircle, Loader2, FileText, RotateCcw, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
 import { generateGtm, type GtmPlan } from "@/lib/gtm.functions";
@@ -7,6 +7,7 @@ import { judgeRepo, type VcVerdict } from "@/lib/judge.functions";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { useState } from "react";
+import { FloatingChat, type ExtraVerdict } from "@/components/FloatingChat";
 
 type Repo = {
   id: number;
@@ -166,9 +167,13 @@ export const Route = createFileRoute("/u/$username/$repo")({
 });
 
 function MemoPage() {
-  const { repo, analysis, gtm, verdict } = Route.useLoaderData() as MemoData;
+  const { repo, analysis, gtm: originalGtm, verdict } = Route.useLoaderData() as MemoData;
   const { username } = Route.useParams();
   const [copied, setCopied] = useState(false);
+  const [extraVerdicts, setExtraVerdicts] = useState<ExtraVerdict[]>([]);
+  const [revisedGtm, setRevisedGtm] = useState<{ gtm: GtmPlan; note: string } | null>(null);
+
+  const gtm = revisedGtm?.gtm ?? originalGtm;
 
 
   const rec = verdict.recommendation;
