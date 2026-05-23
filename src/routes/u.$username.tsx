@@ -2,15 +2,22 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle, Rocket, Target, DollarSign, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchUser, fetchRepos, scoreRepos, type ScoredRepo, type UserProfile } from "@/lib/github";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
+import { generateGtm, type GtmPlan } from "@/lib/gtm.functions";
 
 type AnalysisState =
   | { status: "idle" }
   | { status: "pending" }
   | { status: "done"; data: UnicornAnalysis }
+  | { status: "error"; message: string };
+
+type GtmState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "done"; data: GtmPlan }
   | { status: "error"; message: string };
 
 export const Route = createFileRoute("/u/$username")({
@@ -53,6 +60,7 @@ const TOP_N = 10;
 function UserPage() {
   const { username } = Route.useParams();
   const analyzeFn = useServerFn(analyzeRepo);
+  const gtmFn = useServerFn(generateGtm);
 
   const userQ = useQuery({
     queryKey: ["gh-user", username],
@@ -67,7 +75,34 @@ function UserPage() {
   });
 
   const [analyses, setAnalyses] = useState<Record<number, AnalysisState>>({});
+  const [gtms, setGtms] = useState<Record<number, GtmState>>({});
   const [batchRunning, setBatchRunning] = useState(false);
+
+  const runGtm = useCallback(
+    async (repo: ScoredRepo) => {
+      setGtms((s) => ({ ...s, [repo.id]: { status: "pending" } }));
+      try {
+        const data = await gtmFn({
+          data: {
+            repo: {
+              name: repo.name,
+              description: repo.description,
+              language: repo.language,
+              topics: repo.topics ?? [],
+              owner: username,
+            },
+          },
+        });
+        setGtms((s) => ({ ...s, [repo.id]: { status: "done", data } }));
+      } catch (e) {
+        setGtms((s) => ({
+          ...s,
+          [repo.id]: { status: "error", message: e instanceof Error ? e.message : "failed" },
+        }));
+      }
+    },
+    [gtmFn, username],
+  );
 
   const runOne = useCallback(
     async (repo: ScoredRepo) => {
@@ -204,7 +239,9 @@ function UserPage() {
                 repo={repo}
                 rank={i + 1}
                 state={analyses[repo.id] ?? { status: "idle" }}
+                gtmState={gtms[repo.id] ?? { status: "idle" }}
                 onAnalyze={() => runOne(repo)}
+                onGtm={() => runGtm(repo)}
                 disabled={batchRunning}
               />
             ))}
@@ -278,17 +315,23 @@ function RepoRow({
   repo,
   rank,
   state,
+  gtmState,
   onAnalyze,
+  onGtm,
   disabled,
 }: {
   repo: ScoredRepo;
   rank: number;
   state: AnalysisState;
+  gtmState: GtmState;
   onAnalyze: () => void;
+  onGtm: () => void;
   disabled: boolean;
 }) {
   const done = state.status === "done" ? state.data : null;
   const pending = state.status === "pending";
+  const gtmDone = gtmState.status === "done" ? gtmState.data : null;
+  const gtmPending = gtmState.status === "pending";
 
   return (
     <div className="rounded-lg border border-border bg-card/60 p-4 backdrop-blur transition-all hover:border-primary/50">
@@ -336,7 +379,7 @@ function RepoRow({
               </span>
             ))}
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               variant={done ? "outline" : "default"}
@@ -352,13 +395,101 @@ function RepoRow({
                 <><Zap className="size-3" /> analyze with AI</>
               )}
             </Button>
+            {done && (
+              <Button
+                size="sm"
+                variant={gtmDone ? "outline" : "secondary"}
+                onClick={onGtm}
+                disabled={gtmPending}
+                className="h-7 gap-1.5 font-mono text-xs"
+              >
+                {gtmPending ? (
+                  <><Loader2 className="size-3 animate-spin" /> raiding SERP…</>
+                ) : gtmDone ? (
+                  <><Rocket className="size-3" /> re-plan GTM</>
+                ) : (
+                  <><Rocket className="size-3" /> build GTM plan</>
+                )}
+              </Button>
+            )}
             {state.status === "error" && (
               <span className="font-mono text-xs text-destructive">{state.message}</span>
             )}
+            {gtmState.status === "error" && (
+              <span className="font-mono text-xs text-destructive">{gtmState.message}</span>
+            )}
           </div>
           {done && <AnalysisPanel a={done} />}
+          {gtmDone && <GtmPanel g={gtmDone} />}
         </div>
       </div>
+    </div>
+  );
+}
+
+function GtmPanel({ g }: { g: GtmPlan }) {
+  return (
+    <div className="mt-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+      <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-primary">
+        <Rocket className="size-3" /> gtm plan
+        <span className="ml-2 rounded border border-primary/40 px-1.5 py-px text-[9px] text-primary/80">
+          live SERP
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <GtmField icon={<Target className="size-3" />} label="positioning" value={g.positioning} />
+        <GtmField icon={<DollarSign className="size-3" />} label="pricing" value={g.pricing} />
+        <GtmField icon={<Users className="size-3" />} label="ideal customer" value={g.icp} className="sm:col-span-2" />
+      </div>
+
+      <div className="mt-4">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-accent">competitors</span>
+        <ul className="mt-1.5 space-y-1.5">
+          {g.competitors.map((c, i) => (
+            <li key={i} className="text-xs">
+              <a href={c.url} target="_blank" rel="noreferrer" className="font-mono font-semibold text-foreground hover:text-primary transition-colors">
+                {c.name} <span className="text-muted-foreground">· {c.domain}</span>
+                <ExternalLink className="ml-1 inline size-2.5" />
+              </a>
+              <p className="mt-0.5 text-muted-foreground">{c.angle}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <GtmTimeline label="30 days" items={g.thirtyDay} />
+        <GtmTimeline label="60 days" items={g.sixtyDay} />
+        <GtmTimeline label="90 days" items={g.ninetyDay} />
+      </div>
+    </div>
+  );
+}
+
+function GtmField({ icon, label, value, className }: { icon: React.ReactNode; label: string; value: string; className?: string }) {
+  return (
+    <div className={className}>
+      <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-accent">
+        {icon} {label}
+      </span>
+      <p className="mt-0.5 text-muted-foreground">{value}</p>
+    </div>
+  );
+}
+
+function GtmTimeline({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="rounded border border-border/50 bg-background/40 p-2.5">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-primary">// {label}</span>
+      <ul className="mt-1.5 space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <span className="mt-0.5 font-mono text-[9px] text-primary/60">{String(i + 1).padStart(2, "0")}</span>
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
