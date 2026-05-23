@@ -63,6 +63,9 @@ export const Route = createFileRoute("/u/$username")({
 
 const CONCURRENCY = 3;
 const TOP_N = 10;
+// Analyze a larger candidate pool so the final top 10 reflects AI unicorn
+// scores, not just the heuristic pre-ranking.
+const CANDIDATE_POOL = 20;
 
 function UserPage() {
   const location = useLocation();
