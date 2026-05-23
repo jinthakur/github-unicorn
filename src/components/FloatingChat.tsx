@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { MessageCircle, Loader2, Gavel, UserPlus, Pencil, X, RotateCcw } from "lucide-react";
+import { Loader2, Gavel, UserPlus, Pencil, RotateCcw, PanelLeftClose, PanelLeftOpen, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,16 +34,16 @@ type Props = {
   onRevisedGtm: (g: GtmPlan, note: string) => void;
 };
 
-export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict, onRevisedGtm }: Props) {
-  const [open, setOpen] = useState(false);
+/* ────────────────────────────────────────────────────────────────
+   Shared inner panel: the actual forms + tabs
+   ─────────────────────────────────────────────────────────────── */
+function ChatPanel({
+  repo, analysis, gtm, extraVerdicts, onAddVerdict, onRevisedGtm,
+}: Props & { onClose?: () => void }) {
   const [runningId, setRunningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // custom persona form
   const [customName, setCustomName] = useState("");
   const [customCtx, setCustomCtx] = useState("");
-
-  // gtm revision
   const [revisionNote, setRevisionNote] = useState("");
   const [revising, setRevising] = useState(false);
 
@@ -110,39 +109,32 @@ export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict,
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          size="lg"
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full p-0 shadow-lg shadow-primary/30"
-          aria-label="Open interactive panel"
-        >
-          <MessageCircle className="size-6" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle className="font-mono">// interact</SheetTitle>
-          <SheetDescription className="font-mono text-xs">
-            Stress-test with another judge, add a custom VC twin, or revise the GTM plan.
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+        <div>
+          <h3 className="font-mono text-sm font-semibold">// interact</h3>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            Stress-test, add judges, or revise GTM.
+          </p>
+        </div>
+      </div>
 
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         {error && (
-          <div className="mt-3 rounded border border-destructive/50 bg-destructive/10 p-2 font-mono text-xs text-destructive">
+          <div className="mb-3 rounded border border-destructive/50 bg-destructive/10 p-2 font-mono text-xs text-destructive">
             {error}
           </div>
         )}
 
-        <Tabs defaultValue="judges" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3 font-mono text-xs">
+        <Tabs defaultValue="judges" className="mt-1">
+          <TabsList className="grid w-full grid-cols-3 font-mono text-[10px]">
             <TabsTrigger value="judges"><Gavel className="mr-1 size-3" /> Judges</TabsTrigger>
             <TabsTrigger value="custom"><UserPlus className="mr-1 size-3" /> Add VC</TabsTrigger>
             <TabsTrigger value="gtm"><Pencil className="mr-1 size-3" /> GTM</TabsTrigger>
           </TabsList>
 
           {/* JUDGES TAB */}
-          <TabsContent value="judges" className="mt-4 space-y-2">
+          <TabsContent value="judges" className="mt-3 space-y-2">
             <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               // pick a judge to stress-test this repo
             </p>
@@ -151,19 +143,19 @@ export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict,
                 const isRunning = runningId === p.id;
                 const alreadyRan = [...usedIds].some((id) => id.startsWith(p.id));
                 return (
-                  <li key={p.id} className="rounded border border-border bg-card/40 p-3">
+                  <li key={p.id} className="rounded border border-border bg-card/40 p-2.5">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="min-w-1">
                         <p className="truncate font-mono text-sm font-semibold">{p.name}</p>
                         <p className="truncate font-mono text-[10px] text-muted-foreground">{p.firm}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{p.style}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">{p.style}</p>
                       </div>
                       <Button
                         size="sm"
                         variant={alreadyRan ? "outline" : "default"}
                         disabled={runningId !== null}
                         onClick={() => runPersona(p)}
-                        className="shrink-0 font-mono text-xs"
+                        className="shrink-1 font-mono text-[10px] px-2 h-7"
                       >
                         {isRunning ? <Loader2 className="size-3 animate-spin" /> : alreadyRan ? "re-run" : "run"}
                       </Button>
@@ -175,45 +167,46 @@ export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict,
           </TabsContent>
 
           {/* CUSTOM TAB */}
-          <TabsContent value="custom" className="mt-4 space-y-3">
+          <TabsContent value="custom" className="mt-3 space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               // create a custom VC twin
             </p>
             <div>
-              <label className="font-mono text-xs text-muted-foreground">Name</label>
+              <label className="font-mono text-[10px] text-muted-foreground">Name</label>
               <Input
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value.slice(0, 120))}
                 placeholder="e.g. Naval Ravikant"
-                className="mt-1 font-mono text-sm"
+                className="mt-1 font-mono text-sm h-8"
               />
             </div>
             <div>
-              <label className="font-mono text-xs text-muted-foreground">
+              <label className="font-mono text-[10px] text-muted-foreground">
                 LinkedIn URL or 1-line persona (optional)
               </label>
               <Textarea
                 value={customCtx}
                 onChange={(e) => setCustomCtx(e.target.value.slice(0, 600))}
                 placeholder="e.g. https://linkedin.com/in/navalravikant — first-principles solo capitalist, judges by leverage & taste"
-                className="mt-1 min-h-20 font-mono text-xs"
+                className="mt-1 min-h-16 font-mono text-xs"
               />
             </div>
             <Button
               onClick={runCustom}
               disabled={!customName.trim() || runningId !== null}
               className="w-full font-mono text-xs"
+              size="sm"
             >
               {runningId?.startsWith("custom") ? (
-                <><Loader2 className="mr-1.5 size-3 animate-spin" /> running stress test…</>
+                <><Loader2 className="mr-1.5 size-3 animate-spin" /> running…</>
               ) : (
-                <>Run stress test as {customName.trim() || "..."}</>
+                <>Run stress test as {customName.trim() || "…"}</>
               )}
             </Button>
           </TabsContent>
 
           {/* GTM TAB */}
-          <TabsContent value="gtm" className="mt-4 space-y-3">
+          <TabsContent value="gtm" className="mt-3 space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               // revise the GTM plan in plain english
             </p>
@@ -221,15 +214,16 @@ export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict,
               value={revisionNote}
               onChange={(e) => setRevisionNote(e.target.value.slice(0, 1000))}
               placeholder={`e.g. switch to bottoms-up PLG, $0 free tier + $20/seat, drop enterprise outbound from the 30-day plan`}
-              className="min-h-32 font-mono text-xs"
+              className="min-h-24 font-mono text-xs"
             />
             <Button
               onClick={reviseGtm}
               disabled={!revisionNote.trim() || revising}
               className="w-full font-mono text-xs"
+              size="sm"
             >
               {revising ? (
-                <><Loader2 className="mr-1.5 size-3 animate-spin" /> reworking GTM…</>
+                <><Loader2 className="mr-1.5 size-3 animate-spin" /> reworking…</>
               ) : (
                 <><RotateCcw className="mr-1.5 size-3" /> rework GTM plan</>
               )}
@@ -241,7 +235,7 @@ export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict,
         </Tabs>
 
         {extraVerdicts.length > 0 && (
-          <div className="mt-6 border-t border-border pt-4">
+          <div className="mt-4 border-t border-border pt-3">
             <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               // judges run this session ({extraVerdicts.length})
             </p>
@@ -254,19 +248,103 @@ export function FloatingChat({ repo, analysis, gtm, extraVerdicts, onAddVerdict,
                       {v.verdict.recommendation.replace("_", " ")}
                     </span>
                   </span>
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="text-muted-foreground hover:text-primary"
-                    aria-label="View on memo"
-                  >
-                    <X className="size-3" />
-                  </button>
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+   FloatingChat: desktop sidebar + mobile overlay
+   ─────────────────────────────────────────────────────────────── */
+export function FloatingChat(props: Props) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <>
+      {/* Desktop: persistent sidebar */}
+      <aside
+        className={`hidden lg:flex flex-col border-l border-border/50 bg-card/20 transition-all duration-300 ${
+          collapsed ? "w-12" : "w-80 xl:w-96"
+        }`}
+        style={{ height: "calc(100vh - 2rem)" }}
+      >
+        {collapsed ? (
+          <div className="flex h-full flex-col items-center py-4">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setCollapsed(false)}
+              aria-label="Expand panel"
+              className="mb-2"
+            >
+              <PanelLeftOpen className="size-5" />
+            </Button>
+            <div className="mt-2 flex flex-col items-center gap-1">
+              <Gavel className="size-4 text-muted-foreground" />
+              {props.extraVerdicts.length > 0 && (
+                <span className="rounded-full bg-primary px-1.5 py-0.5 font-mono text-[9px] text-primary-foreground">
+                  {props.extraVerdicts.length}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-end border-b border-border/50 px-2 py-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setCollapsed(true)}
+                aria-label="Collapse panel"
+                className="h-7 w-7"
+              >
+                <PanelLeftClose className="size-4" />
+              </Button>
+            </div>
+            <ChatPanel {...props} />
+          </>
+        )}
+      </aside>
+
+      {/* Mobile: floating button + full-screen overlay */}
+      <div className="lg:hidden">
+        {!mobileOpen ? (
+          <Button
+            size="lg"
+            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full p-0 shadow-lg shadow-primary/30"
+            aria-label="Open interactive panel"
+            onClick={() => setMobileOpen(true)}
+          >
+            <MessageCircle className="size-6" />
+            {props.extraVerdicts.length > 1 && (
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {props.extraVerdicts.length}
+              </span>
+            )}
+          </Button>
+        ) : (
+          <div className="fixed inset-0 z-50 flex flex-col bg-background">
+            <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+              <div>
+                <h3 className="font-mono text-sm font-semibold">// interact</h3>
+                <p className="font-mono text-[10px] text-muted-foreground">Stress-test, add judges, or revise GTM.</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => setMobileOpen(false)} aria-label="Close panel">
+                <X className="size-5" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ChatPanel {...props} onClose={() => setMobileOpen(false)} />
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
