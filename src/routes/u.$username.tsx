@@ -63,6 +63,9 @@ export const Route = createFileRoute("/u/$username")({
 
 const CONCURRENCY = 3;
 const TOP_N = 10;
+// Analyze a larger candidate pool so the final top 10 reflects AI unicorn
+// scores, not just the heuristic pre-ranking.
+const CANDIDATE_POOL = 20;
 
 function UserPage() {
   const location = useLocation();
@@ -183,27 +186,15 @@ function RepoListPage() {
     [analyzeFn, username],
   );
 
-  const topRepos = useMemo(() => reposQ.data?.slice(0, TOP_N) ?? [], [reposQ.data]);
+  const candidateRepos = useMemo(
+    () => reposQ.data?.slice(0, CANDIDATE_POOL) ?? [],
+    [reposQ.data],
+  );
 
-  const runAll = useCallback(async () => {
-    if (batchRunning || topRepos.length === 0) return;
-    setBatchRunning(true);
-    // Only analyze repos that aren't already done — re-run errors and idles
-    const queue = topRepos.filter((r) => analyses[r.id]?.status !== "done");
-    let idx = 0;
-    const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
-      while (idx < queue.length) {
-        const my = idx++;
-        await runOne(queue[my]);
-      }
-    });
-    await Promise.all(workers);
-    setBatchRunning(false);
-  }, [batchRunning, topRepos, analyses, runOne]);
-
-  // Sort: done repos by unicornScore desc, then unanalyzed by heuristic score
+  // Sort candidates: analyzed repos first by AI unicornScore desc,
+  // then unanalyzed by heuristic. Slice to top N for display.
   const sortedRepos = useMemo(() => {
-    return [...topRepos].sort((a, b) => {
+    const sorted = [...candidateRepos].sort((a, b) => {
       const aDone = analyses[a.id]?.status === "done";
       const bDone = analyses[b.id]?.status === "done";
       if (aDone && bDone) {
@@ -214,10 +205,30 @@ function RepoListPage() {
       if (bDone) return 1;
       return b.score - a.score;
     });
-  }, [topRepos, analyses]);
+    return sorted.slice(0, TOP_N);
+  }, [candidateRepos, analyses]);
 
-  const doneCount = topRepos.filter((r) => analyses[r.id]?.status === "done").length;
-  const pendingCount = topRepos.filter((r) => analyses[r.id]?.status === "pending").length;
+  // Batch analyzes the full candidate pool so the final top 10 is
+  // selected by AI verdict, not heuristic.
+  const topRepos = sortedRepos;
+
+  const runAll = useCallback(async () => {
+    if (batchRunning || candidateRepos.length === 0) return;
+    setBatchRunning(true);
+    const queue = candidateRepos.filter((r) => analyses[r.id]?.status !== "done");
+    let idx = 0;
+    const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+      while (idx < queue.length) {
+        const my = idx++;
+        await runOne(queue[my]);
+      }
+    });
+    await Promise.all(workers);
+    setBatchRunning(false);
+  }, [batchRunning, candidateRepos, analyses, runOne]);
+
+  const doneCount = candidateRepos.filter((r) => analyses[r.id]?.status === "done").length;
+  const pendingCount = candidateRepos.filter((r) => analyses[r.id]?.status === "pending").length;
 
   return (
     <main className="min-h-screen scanline">
