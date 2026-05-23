@@ -313,7 +313,7 @@ export function FloatingChat(props: Props) {
       </aside>
 
       {/* Mobile: floating button + full-screen overlay */}
-      <div className="lg:hidden">
+      <div>
         {!mobileOpen ? (
           <Button
             size="lg"
