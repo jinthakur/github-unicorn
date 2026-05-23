@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchUser, fetchRepos, scoreRepos, type ScoredRepo, type UserProfile } from "@/lib/github";
+import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
 
 export const Route = createFileRoute("/u/$username")({
   head: ({ params }) => ({
