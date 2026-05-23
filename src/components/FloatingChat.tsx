@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Gavel, UserPlus, Pencil, RotateCcw, PanelLeftClose, PanelLeftOpen, MessageCircle, X } from "lucide-react";
+import { Loader2, Gavel, UserPlus, Pencil, RotateCcw, PanelLeftClose, PanelLeftOpen, MessageCircle, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
