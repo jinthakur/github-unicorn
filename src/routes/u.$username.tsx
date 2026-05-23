@@ -60,6 +60,7 @@ const TOP_N = 10;
 function UserPage() {
   const { username } = Route.useParams();
   const analyzeFn = useServerFn(analyzeRepo);
+  const gtmFn = useServerFn(generateGtm);
 
   const userQ = useQuery({
     queryKey: ["gh-user", username],
@@ -74,7 +75,34 @@ function UserPage() {
   });
 
   const [analyses, setAnalyses] = useState<Record<number, AnalysisState>>({});
+  const [gtms, setGtms] = useState<Record<number, GtmState>>({});
   const [batchRunning, setBatchRunning] = useState(false);
+
+  const runGtm = useCallback(
+    async (repo: ScoredRepo) => {
+      setGtms((s) => ({ ...s, [repo.id]: { status: "pending" } }));
+      try {
+        const data = await gtmFn({
+          data: {
+            repo: {
+              name: repo.name,
+              description: repo.description,
+              language: repo.language,
+              topics: repo.topics ?? [],
+              owner: username,
+            },
+          },
+        });
+        setGtms((s) => ({ ...s, [repo.id]: { status: "done", data } }));
+      } catch (e) {
+        setGtms((s) => ({
+          ...s,
+          [repo.id]: { status: "error", message: e instanceof Error ? e.message : "failed" },
+        }));
+      }
+    },
+    [gtmFn, username],
+  );
 
   const runOne = useCallback(
     async (repo: ScoredRepo) => {
