@@ -452,6 +452,7 @@ function MemoPage() {
           </Button>
         </footer>
       </article>
+      </div>
 
       <FloatingChat
         repo={repo}
