@@ -21,6 +21,12 @@ type GtmState =
   | { status: "done"; data: GtmPlan }
   | { status: "error"; message: string };
 
+type JudgeState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "done"; data: VcVerdict }
+  | { status: "error"; message: string };
+
 export const Route = createFileRoute("/u/$username")({
   head: ({ params }) => ({
     meta: [
