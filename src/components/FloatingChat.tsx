@@ -312,23 +312,9 @@ export function FloatingChat(props: Props) {
         )}
       </aside>
 
-      {/* Mobile: floating button + full-screen overlay */}
+      {/* Always-visible floating launcher + full-screen overlay */}
       <div>
-        {!mobileOpen ? (
-          <Button
-            size="lg"
-            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full p-0 shadow-lg shadow-primary/30"
-            aria-label="Open interactive panel"
-            onClick={() => setMobileOpen(true)}
-          >
-            <MessageCircle className="size-6" />
-            {props.extraVerdicts.length > 1 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                {props.extraVerdicts.length}
-              </span>
-            )}
-          </Button>
-        ) : (
+        {mobileOpen && (
           <div className="fixed inset-0 z-50 flex flex-col bg-background">
             <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
               <div>
@@ -344,6 +330,21 @@ export function FloatingChat(props: Props) {
             </div>
           </div>
         )}
+
+        <Button
+          size="lg"
+          className="fixed bottom-5 right-5 z-[100] h-12 rounded-full border border-primary/40 px-4 font-mono text-xs shadow-lg shadow-primary/30"
+          aria-label={mobileOpen ? "Close interactive panel" : "Open interactive panel"}
+          onClick={() => setMobileOpen((open) => !open)}
+        >
+          {mobileOpen ? <X className="mr-2 size-5" /> : <MessageCircle className="mr-2 size-5" />}
+          {mobileOpen ? "close" : "interact"}
+          {props.extraVerdicts.length > 0 && (
+            <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-[10px] font-bold text-foreground">
+              {props.extraVerdicts.length}
+            </span>
+          )}
+        </Button>
       </div>
     </>
   );
