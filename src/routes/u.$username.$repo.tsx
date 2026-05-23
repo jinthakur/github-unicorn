@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, Star, GitFork, Sparkles, Rocket, Gavel, Target, DollarSign, Users, AlertTriangle, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Terminal, Share2, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star, GitFork, Sparkles, Rocket, Gavel, Target, DollarSign, Users, AlertTriangle, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Terminal, Share2, AlertCircle, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
 import { generateGtm, type GtmPlan } from "@/lib/gtm.functions";
@@ -250,6 +250,37 @@ function MemoPage() {
             &ldquo;{verdict.oneLiner}&rdquo;
           </p>
         </section>
+
+        {/* FULL MEMO */}
+        <Section icon={<FileText className="size-4 text-primary" />} title="full VC memo">
+          <div className="space-y-5">
+            <div>
+              <Label color="primary">investment recommendation</Label>
+              <p className="mt-1 text-base font-semibold text-foreground">
+                {recMeta.label} · unicorn score {analysis.unicornScore}/100 · conviction {verdict.conviction}/100
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{verdict.oneLiner}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label color="accent">core thesis</Label>
+                <p className="mt-1 text-sm text-muted-foreground">{analysis.thesis}</p>
+              </div>
+              <div>
+                <Label color="primary">market wedge</Label>
+                <p className="mt-1 text-sm text-muted-foreground">{gtm.positioning}</p>
+              </div>
+              <div>
+                <Label color="accent">business model</Label>
+                <p className="mt-1 text-sm text-muted-foreground">{analysis.monetization}</p>
+              </div>
+              <div>
+                <Label color="destructive">main concern</Label>
+                <p className="mt-1 text-sm text-muted-foreground">{verdict.objections[0] ?? analysis.risks[0]}</p>
+              </div>
+            </div>
+          </div>
+        </Section>
 
         {/* THESIS */}
         <Section icon={<Sparkles className="size-4 text-accent" />} title="thesis">
