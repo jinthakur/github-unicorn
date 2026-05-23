@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useMemo, useState } from "react";
@@ -65,6 +65,15 @@ const CONCURRENCY = 3;
 const TOP_N = 10;
 
 function UserPage() {
+  const location = useLocation();
+  const isMemoRoute = location.pathname.split("/").filter(Boolean).length > 2;
+
+  if (isMemoRoute) return <Outlet />;
+
+  return <RepoListPage />;
+}
+
+function RepoListPage() {
   const { username } = Route.useParams();
   const analyzeFn = useServerFn(analyzeRepo);
   const gtmFn = useServerFn(generateGtm);
