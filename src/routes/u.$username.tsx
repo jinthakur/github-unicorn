@@ -2,15 +2,22 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle, Rocket, Target, DollarSign, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchUser, fetchRepos, scoreRepos, type ScoredRepo, type UserProfile } from "@/lib/github";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
+import { generateGtm, type GtmPlan } from "@/lib/gtm.functions";
 
 type AnalysisState =
   | { status: "idle" }
   | { status: "pending" }
   | { status: "done"; data: UnicornAnalysis }
+  | { status: "error"; message: string };
+
+type GtmState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "done"; data: GtmPlan }
   | { status: "error"; message: string };
 
 export const Route = createFileRoute("/u/$username")({
