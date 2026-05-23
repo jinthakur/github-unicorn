@@ -281,8 +281,10 @@ function UserPage() {
                 rank={i + 1}
                 state={analyses[repo.id] ?? { status: "idle" }}
                 gtmState={gtms[repo.id] ?? { status: "idle" }}
+                judgeState={judges[repo.id] ?? { status: "idle" }}
                 onAnalyze={() => runOne(repo)}
                 onGtm={() => runGtm(repo)}
+                onJudge={() => runJudge(repo)}
                 disabled={batchRunning}
               />
             ))}
