@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Skull, Sparkles, Terminal, Search, TrendingUp, Gavel } from "lucide-react";
+import { ArrowRight, Skull, Sparkles, Terminal, Search, TrendingUp, Gavel, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 
@@ -50,14 +50,21 @@ function Landing() {
           <span className="text-muted-foreground">→</span>
           <span className="text-gradient-unicorn font-semibold">unicorn</span>
         </div>
-        <a
-          href="https://github.com/panforrest"
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
-        >
-          built @ nyc agent hack 2026
-        </a>
+        <div className="flex items-center gap-3">
+          <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 font-mono text-xs">
+            <a href="/pitch-deck.pptx" download="graveyard-to-unicorn-pitch.pptx">
+              <Download className="size-3.5" /> Download pitch deck
+            </a>
+          </Button>
+          <a
+            href="https://github.com/panforrest"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden text-xs font-mono text-muted-foreground hover:text-primary transition-colors sm:inline"
+          >
+            built @ nyc agent hack 2026
+          </a>
+        </div>
       </nav>
 
       {/* Hero */}
