@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Github, ArrowRight, Skull, Sparkles, Terminal, Search, TrendingUp, Gavel } from "lucide-react";
+import { ArrowRight, Skull, Sparkles, Terminal, Search, TrendingUp, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,13 +22,15 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [username, setUsername] = useState("");
+  const navigate = useNavigate();
 
   const handleAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
-    // Step 2 will wire this to /u/:username
-    console.log("analyze", username);
+    const u = username.trim().replace(/^@/, "");
+    if (!u) return;
+    navigate({ to: "/u/$username", params: { username: u } });
   };
+
 
   return (
     <main className="min-h-screen scanline">
@@ -95,12 +98,13 @@ function Landing() {
             {["torvalds", "sindresorhus", "panforrest"].map((u) => (
               <button
                 key={u}
-                onClick={() => setUsername(u)}
+                onClick={() => navigate({ to: "/u/$username", params: { username: u } })}
                 className="rounded border border-border bg-card/40 px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 {u}
               </button>
             ))}
+
           </div>
         </div>
       </section>
