@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle, Rocket, Target, DollarSign, Users, Gavel, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb } from "lucide-react";
+import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle, Rocket, Target, DollarSign, Users, Gavel, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchUser, fetchRepos, scoreRepos, type ScoredRepo, type UserProfile } from "@/lib/github";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
@@ -279,6 +279,7 @@ function UserPage() {
                 key={repo.id}
                 repo={repo}
                 rank={i + 1}
+                username={username}
                 state={analyses[repo.id] ?? { status: "idle" }}
                 gtmState={gtms[repo.id] ?? { status: "idle" }}
                 judgeState={judges[repo.id] ?? { status: "idle" }}
@@ -288,6 +289,7 @@ function UserPage() {
                 disabled={batchRunning}
               />
             ))}
+
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card/40 py-16 text-center">
@@ -357,6 +359,7 @@ function ProfileHeader({ user }: { user: UserProfile }) {
 function RepoRow({
   repo,
   rank,
+  username,
   state,
   gtmState,
   judgeState,
@@ -367,6 +370,7 @@ function RepoRow({
 }: {
   repo: ScoredRepo;
   rank: number;
+  username: string;
   state: AnalysisState;
   gtmState: GtmState;
   judgeState: JudgeState;
@@ -375,6 +379,7 @@ function RepoRow({
   onJudge: () => void;
   disabled: boolean;
 }) {
+
   const done = state.status === "done" ? state.data : null;
   const pending = state.status === "pending";
   const gtmDone = gtmState.status === "done" ? gtmState.data : null;
@@ -478,7 +483,18 @@ function RepoRow({
                 )}
               </Button>
             )}
+            {done && gtmDone && judgeDone && (
+              <Link
+                to="/u/$username/$repo"
+                params={{ username, repo: repo.name }}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md border border-primary/40 px-2.5 font-mono text-xs text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Share2 className="size-3" /> view memo
+              </Link>
+            )}
+
             {state.status === "error" && (
+
               <span className="font-mono text-xs text-destructive">{state.message}</span>
             )}
             {gtmState.status === "error" && (

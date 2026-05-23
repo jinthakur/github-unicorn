@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
+import { Route as UUsernameRepoRouteImport } from './routes/u.$username.$repo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,39 @@ const UUsernameRoute = UUsernameRouteImport.update({
   path: '/u/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UUsernameRepoRoute = UUsernameRepoRouteImport.update({
+  id: '/$repo',
+  path: '/$repo',
+  getParentRoute: () => UUsernameRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/u/$username': typeof UUsernameRoute
+  '/u/$username': typeof UUsernameRouteWithChildren
+  '/u/$username/$repo': typeof UUsernameRepoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/u/$username': typeof UUsernameRoute
+  '/u/$username': typeof UUsernameRouteWithChildren
+  '/u/$username/$repo': typeof UUsernameRepoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/u/$username': typeof UUsernameRoute
+  '/u/$username': typeof UUsernameRouteWithChildren
+  '/u/$username/$repo': typeof UUsernameRepoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/u/$username'
+  fullPaths: '/' | '/u/$username' | '/u/$username/$repo'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/u/$username'
-  id: '__root__' | '/' | '/u/$username'
+  to: '/' | '/u/$username' | '/u/$username/$repo'
+  id: '__root__' | '/' | '/u/$username' | '/u/$username/$repo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  UUsernameRoute: typeof UUsernameRoute
+  UUsernameRoute: typeof UUsernameRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +74,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/u/$username/$repo': {
+      id: '/u/$username/$repo'
+      path: '/$repo'
+      fullPath: '/u/$username/$repo'
+      preLoaderRoute: typeof UUsernameRepoRouteImport
+      parentRoute: typeof UUsernameRoute
+    }
   }
 }
 
+interface UUsernameRouteChildren {
+  UUsernameRepoRoute: typeof UUsernameRepoRoute
+}
+
+const UUsernameRouteChildren: UUsernameRouteChildren = {
+  UUsernameRepoRoute: UUsernameRepoRoute,
+}
+
+const UUsernameRouteWithChildren = UUsernameRoute._addFileChildren(
+  UUsernameRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  UUsernameRoute: UUsernameRoute,
+  UUsernameRoute: UUsernameRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
