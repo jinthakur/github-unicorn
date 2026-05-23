@@ -1,10 +1,17 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useMemo, useState } from "react";
 import { ArrowLeft, Star, GitFork, AlertCircle, ExternalLink, Skull, Sparkles, Terminal, Loader2, Zap, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchUser, fetchRepos, scoreRepos, type ScoredRepo, type UserProfile } from "@/lib/github";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
+
+type AnalysisState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "done"; data: UnicornAnalysis }
+  | { status: "error"; message: string };
 
 export const Route = createFileRoute("/u/$username")({
   head: ({ params }) => ({
@@ -37,8 +44,12 @@ export const Route = createFileRoute("/u/$username")({
   ),
 });
 
+const CONCURRENCY = 3;
+const TOP_N = 10;
+
 function UserPage() {
   const { username } = Route.useParams();
+  const analyzeFn = useServerFn(analyzeRepo);
 
   const userQ = useQuery({
     queryKey: ["gh-user", username],
@@ -51,6 +62,74 @@ function UserPage() {
     queryFn: async () => scoreRepos(await fetchRepos(username)),
     retry: 1,
   });
+
+  const [analyses, setAnalyses] = useState<Record<number, AnalysisState>>({});
+  const [batchRunning, setBatchRunning] = useState(false);
+
+  const runOne = useCallback(
+    async (repo: ScoredRepo) => {
+      setAnalyses((s) => ({ ...s, [repo.id]: { status: "pending" } }));
+      try {
+        const data = await analyzeFn({
+          data: {
+            repo: {
+              name: repo.name,
+              description: repo.description,
+              language: repo.language,
+              stars: repo.stargazers_count,
+              forks: repo.forks_count,
+              topics: repo.topics ?? [],
+              daysSincePush: repo.daysSincePush,
+              owner: username,
+            },
+          },
+        });
+        setAnalyses((s) => ({ ...s, [repo.id]: { status: "done", data } }));
+      } catch (e) {
+        setAnalyses((s) => ({
+          ...s,
+          [repo.id]: { status: "error", message: e instanceof Error ? e.message : "failed" },
+        }));
+      }
+    },
+    [analyzeFn, username],
+  );
+
+  const topRepos = useMemo(() => reposQ.data?.slice(0, TOP_N) ?? [], [reposQ.data]);
+
+  const runAll = useCallback(async () => {
+    if (batchRunning || topRepos.length === 0) return;
+    setBatchRunning(true);
+    // Only analyze repos that aren't already done — re-run errors and idles
+    const queue = topRepos.filter((r) => analyses[r.id]?.status !== "done");
+    let idx = 0;
+    const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+      while (idx < queue.length) {
+        const my = idx++;
+        await runOne(queue[my]);
+      }
+    });
+    await Promise.all(workers);
+    setBatchRunning(false);
+  }, [batchRunning, topRepos, analyses, runOne]);
+
+  // Sort: done repos by unicornScore desc, then unanalyzed by heuristic score
+  const sortedRepos = useMemo(() => {
+    return [...topRepos].sort((a, b) => {
+      const aDone = analyses[a.id]?.status === "done";
+      const bDone = analyses[b.id]?.status === "done";
+      if (aDone && bDone) {
+        return (analyses[b.id] as { data: UnicornAnalysis }).data.unicornScore
+          - (analyses[a.id] as { data: UnicornAnalysis }).data.unicornScore;
+      }
+      if (aDone) return -1;
+      if (bDone) return 1;
+      return b.score - a.score;
+    });
+  }, [topRepos, analyses]);
+
+  const doneCount = topRepos.filter((r) => analyses[r.id]?.status === "done").length;
+  const pendingCount = topRepos.filter((r) => analyses[r.id]?.status === "pending").length;
 
   return (
     <main className="min-h-screen scanline">
@@ -75,20 +154,36 @@ function UserPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="mb-6 flex items-end justify-between">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
               // top monetizable repos
             </h2>
             <p className="mt-1 text-xs font-mono text-muted-foreground/70">
-              heuristic pre-ranking · click ⚡ for AI unicorn verdict
+              {doneCount > 0
+                ? `ranked by AI unicorn score · ${doneCount}/${topRepos.length} analyzed`
+                : "heuristic pre-ranking · run AI for unicorn verdicts"}
             </p>
           </div>
-          {reposQ.data && (
-            <span className="font-mono text-xs text-muted-foreground">
-              {reposQ.data.length} repos scanned
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {batchRunning && (
+              <span className="font-mono text-xs text-muted-foreground">
+                <Loader2 className="mr-1 inline size-3 animate-spin" />
+                {doneCount}/{topRepos.length} · {pendingCount} in flight
+              </span>
+            )}
+            {topRepos.length > 0 && (
+              <Button
+                size="sm"
+                onClick={runAll}
+                disabled={batchRunning}
+                className="h-8 gap-1.5 font-mono text-xs"
+              >
+                <Zap className="size-3.5" />
+                {doneCount === 0 ? "analyze all" : doneCount === topRepos.length ? "re-analyze all" : `analyze remaining (${topRepos.length - doneCount})`}
+              </Button>
+            )}
+          </div>
         </div>
 
         {reposQ.isLoading ? (
@@ -98,10 +193,17 @@ function UserPage() {
               raiding the graveyard…
             </p>
           </div>
-        ) : reposQ.data && reposQ.data.length > 0 ? (
+        ) : sortedRepos.length > 0 ? (
           <div className="grid gap-3">
-            {reposQ.data.slice(0, 10).map((repo, i) => (
-              <RepoRow key={repo.id} repo={repo} rank={i + 1} owner={username} />
+            {sortedRepos.map((repo, i) => (
+              <RepoRow
+                key={repo.id}
+                repo={repo}
+                rank={i + 1}
+                state={analyses[repo.id] ?? { status: "idle" }}
+                onAnalyze={() => runOne(repo)}
+                disabled={batchRunning}
+              />
             ))}
           </div>
         ) : (
@@ -169,30 +271,30 @@ function ProfileHeader({ user }: { user: UserProfile }) {
   );
 }
 
-function RepoRow({ repo, rank, owner }: { repo: ScoredRepo; rank: number; owner: string }) {
-  const analyzeFn = useServerFn(analyzeRepo);
-  const m = useMutation({
-    mutationFn: () =>
-      analyzeFn({
-        data: {
-          repo: {
-            name: repo.name,
-            description: repo.description,
-            language: repo.language,
-            stars: repo.stargazers_count,
-            forks: repo.forks_count,
-            topics: repo.topics ?? [],
-            daysSincePush: repo.daysSincePush,
-            owner,
-          },
-        },
-      }),
-  });
+function RepoRow({
+  repo,
+  rank,
+  state,
+  onAnalyze,
+  disabled,
+}: {
+  repo: ScoredRepo;
+  rank: number;
+  state: AnalysisState;
+  onAnalyze: () => void;
+  disabled: boolean;
+}) {
+  const done = state.status === "done" ? state.data : null;
+  const pending = state.status === "pending";
 
   return (
     <div className="rounded-lg border border-border bg-card/60 p-4 backdrop-blur transition-all hover:border-primary/50">
       <div className="flex items-start gap-4">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-sm font-bold text-primary">
+        <div className={`flex size-9 shrink-0 items-center justify-center rounded-md font-mono text-sm font-bold ${
+          done && done.unicornScore >= 70 ? "bg-primary/20 text-primary"
+          : done && done.unicornScore >= 40 ? "bg-accent/20 text-accent"
+          : "bg-primary/10 text-primary"
+        }`}>
           {rank}
         </div>
         <div className="min-w-0 flex-1">
@@ -231,27 +333,27 @@ function RepoRow({ repo, rank, owner }: { repo: ScoredRepo; rank: number; owner:
               </span>
             ))}
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-2">
             <Button
               size="sm"
-              variant={m.data ? "outline" : "default"}
-              onClick={() => m.mutate()}
-              disabled={m.isPending}
+              variant={done ? "outline" : "default"}
+              onClick={onAnalyze}
+              disabled={pending || disabled}
               className="h-7 gap-1.5 font-mono text-xs"
             >
-              {m.isPending ? (
+              {pending ? (
                 <><Loader2 className="size-3 animate-spin" /> analyzing…</>
-              ) : m.data ? (
+              ) : done ? (
                 <><Zap className="size-3" /> re-analyze</>
               ) : (
                 <><Zap className="size-3" /> analyze with AI</>
               )}
             </Button>
+            {state.status === "error" && (
+              <span className="font-mono text-xs text-destructive">{state.message}</span>
+            )}
           </div>
-          {m.error && (
-            <p className="mt-2 font-mono text-xs text-destructive">{(m.error as Error).message}</p>
-          )}
-          {m.data && <AnalysisPanel a={m.data} />}
+          {done && <AnalysisPanel a={done} />}
         </div>
       </div>
     </div>
