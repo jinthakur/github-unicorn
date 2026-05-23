@@ -79,7 +79,7 @@ function Landing() {
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="panforrest"
+                placeholder="forrestpan"
                 className="flex-1 bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
                 autoFocus
               />
@@ -92,19 +92,15 @@ function Landing() {
             </p>
           </form>
 
-          {/* Sample chips */}
+          {/* Sample chip */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2 font-mono text-xs">
             <span className="text-muted-foreground">try:</span>
-            {["torvalds", "sindresorhus", "panforrest"].map((u) => (
-              <button
-                key={u}
-                onClick={() => navigate({ to: "/u/$username", params: { username: u } })}
-                className="rounded border border-border bg-card/40 px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-              >
-                {u}
-              </button>
-            ))}
-
+            <button
+              onClick={() => navigate({ to: "/u/$username", params: { username: "forrestpan" } })}
+              className="rounded border border-border bg-card/40 px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              forrestpan
+            </button>
           </div>
         </div>
       </section>
