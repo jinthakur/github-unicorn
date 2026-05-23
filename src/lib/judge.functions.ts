@@ -30,6 +30,10 @@ const JudgeInput = z.object({
     sixtyDay: z.array(z.string()),
     ninetyDay: z.array(z.string()),
   }),
+  persona: z.object({
+    name: z.string().min(1).max(120),
+    systemPrompt: z.string().min(1).max(4000),
+  }).optional(),
 });
 
 export type JudgeInputType = z.infer<typeof JudgeInput>;
@@ -49,9 +53,10 @@ export const judgeRepo = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { repo, analysis, gtm } = data;
+    const { repo, analysis, gtm, persona } = data;
 
-    const systemPrompt = `You are a Tier-1 VC partner (think Benchmark / a16z) with 15 years of seed and Series A experience. You've seen 10,000 pitches and funded 40. You are blunt, intellectually honest, and allergic to hype. You write the way Bill Gurley tweets — tight, opinionated, citation-grade. You do not pander. You judge what is in front of you, not what could theoretically be built.`;
+    const systemPrompt = persona?.systemPrompt
+      ?? `You are a Tier-1 VC partner (think Benchmark / a16z) with 15 years of seed and Series A experience. You've seen 10,000 pitches and funded 40. You are blunt, intellectually honest, and allergic to hype. You write the way Bill Gurley tweets — tight, opinionated, citation-grade. You do not pander. You judge what is in front of you, not what could theoretically be built.`;
 
     const userPrompt = `An analyst pitched you this open-source repo as a potential venture investment. Below is their unicorn thesis AND a proposed 30/60/90 GTM plan. Render your verdict.
 

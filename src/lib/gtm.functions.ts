@@ -10,6 +10,7 @@ const GtmInput = z.object({
     topics: z.array(z.string().max(80)).max(30),
     owner: z.string().min(1).max(120),
   }),
+  revisionNote: z.string().min(1).max(1000).optional(),
 });
 
 export type GtmInputType = z.infer<typeof GtmInput>;
@@ -44,7 +45,7 @@ export const generateGtm = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { repo } = data;
+    const { repo, revisionNote } = data;
 
     // 1) Pull live competitors via Nimble SERP
     let serp: SerpResult[] = [];
@@ -76,7 +77,7 @@ Pick 3-5 REAL competitors from the SERP above (use their actual URL + domain). S
 
 Pricing must be specific: $X/mo tier OR usage-based with a unit price OR free + paid add-on. No "freemium TBD".
 
-Each 30/60/90 item must be a concrete action a solo founder can execute next Monday. No "build community" or "create content" — say WHERE and HOW.`;
+Each 30/60/90 item must be a concrete action a solo founder can execute next Monday. No "build community" or "create content" — say WHERE and HOW.${revisionNote ? `\n\nUSER REVISION REQUEST (HIGHEST PRIORITY — rework the plan accordingly): ${revisionNote}` : ""}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

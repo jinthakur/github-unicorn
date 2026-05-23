@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, Star, GitFork, Sparkles, Rocket, Gavel, Target, DollarSign, Users, AlertTriangle, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Terminal, Share2, AlertCircle, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star, GitFork, Sparkles, Rocket, Gavel, Target, DollarSign, Users, AlertTriangle, ThumbsDown, ThumbsUp, HelpCircle, Lightbulb, Terminal, Share2, AlertCircle, Loader2, FileText, RotateCcw, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeRepo, type UnicornAnalysis } from "@/lib/analyze.functions";
 import { generateGtm, type GtmPlan } from "@/lib/gtm.functions";
@@ -7,6 +7,7 @@ import { judgeRepo, type VcVerdict } from "@/lib/judge.functions";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { useState } from "react";
+import { FloatingChat, type ExtraVerdict } from "@/components/FloatingChat";
 
 type Repo = {
   id: number;
@@ -166,9 +167,13 @@ export const Route = createFileRoute("/u/$username/$repo")({
 });
 
 function MemoPage() {
-  const { repo, analysis, gtm, verdict } = Route.useLoaderData() as MemoData;
+  const { repo, analysis, gtm: originalGtm, verdict } = Route.useLoaderData() as MemoData;
   const { username } = Route.useParams();
   const [copied, setCopied] = useState(false);
+  const [extraVerdicts, setExtraVerdicts] = useState<ExtraVerdict[]>([]);
+  const [revisedGtm, setRevisedGtm] = useState<{ gtm: GtmPlan; note: string } | null>(null);
+
+  const gtm = revisedGtm?.gtm ?? originalGtm;
 
 
   const rec = verdict.recommendation;
@@ -306,7 +311,17 @@ function MemoPage() {
         </Section>
 
         {/* GTM */}
-        <Section icon={<Rocket className="size-4 text-primary" />} title="go-to-market plan">
+        <Section icon={<Rocket className="size-4 text-primary" />} title={revisedGtm ? "go-to-market plan ✏️ revised" : "go-to-market plan"}>
+          {revisedGtm && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded border border-accent/40 bg-accent/10 p-2.5">
+              <p className="font-mono text-xs text-accent">
+                revised: <span className="text-muted-foreground">"{revisedGtm.note}"</span>
+              </p>
+              <Button size="sm" variant="outline" onClick={() => setRevisedGtm(null)} className="h-7 gap-1.5 font-mono text-xs">
+                <RotateCcw className="size-3" /> revert
+              </Button>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field icon={<Target className="size-3" />} label="positioning" value={gtm.positioning} />
             <Field icon={<DollarSign className="size-3" />} label="pricing" value={gtm.pricing} />
@@ -368,6 +383,67 @@ function MemoPage() {
           </div>
         </Section>
 
+        {/* EXTRA JUDGE VERDICTS (added live via FloatingChat) */}
+        {extraVerdicts.map((ev) => {
+          const r = ev.verdict.recommendation;
+          const meta =
+            r === "term_sheet" ? { label: "TERM SHEET", cls: "border-primary/60 bg-primary/15 text-primary", icon: <ThumbsUp className="size-4" /> }
+            : r === "explore"  ? { label: "EXPLORE", cls: "border-accent/60 bg-accent/15 text-accent", icon: <HelpCircle className="size-4" /> }
+            :                    { label: "PASS", cls: "border-destructive/60 bg-destructive/15 text-destructive", icon: <ThumbsDown className="size-4" /> };
+          return (
+            <Section key={ev.id} icon={<UserCircle2 className="size-4 text-accent" />} title={`${ev.personaName} — stress test`}>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">// {ev.personaStyle}</p>
+              <div className={`mt-3 flex flex-wrap items-center gap-2 rounded border p-2.5 ${meta.cls}`}>
+                <span className="inline-flex items-center gap-1.5 rounded border border-current px-2 py-0.5 font-mono text-xs font-bold">
+                  {meta.icon} {meta.label}
+                </span>
+                <span className="rounded border border-current/40 px-2 py-0.5 font-mono text-xs">
+                  conviction {ev.verdict.conviction}/100
+                </span>
+              </div>
+              <p className="mt-3 text-base font-semibold text-foreground">&ldquo;{ev.verdict.oneLiner}&rdquo;</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label color="destructive"><ThumbsDown className="size-3" /> objections</Label>
+                  <ul className="mt-2 space-y-1.5 text-sm">
+                    {ev.verdict.objections.map((o, i) => (
+                      <li key={i} className="flex gap-1.5 text-muted-foreground">
+                        <span className="mt-0.5 font-mono text-[10px] text-destructive/70">{String(i + 1).padStart(2, "0")}</span>
+                        <span>{o}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <Label color="primary"><HelpCircle className="size-3" /> diligence</Label>
+                  <ul className="mt-2 space-y-1.5 text-sm">
+                    {ev.verdict.diligence.map((d, i) => (
+                      <li key={i} className="flex gap-1.5 text-muted-foreground">
+                        <span className="mt-0.5 font-mono text-[10px] text-primary/70">Q{i + 1}</span>
+                        <span>{d}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-4 flex items-start justify-between gap-3 rounded border border-border/60 bg-background/40 p-3">
+                <div>
+                  <Label color="accent"><Lightbulb className="size-3" /> change my mind</Label>
+                  <p className="mt-1 text-sm text-muted-foreground">{ev.verdict.changeMyMind}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setExtraVerdicts((prev) => prev.filter((x) => x.id !== ev.id))}
+                  className="h-7 shrink-0 font-mono text-xs text-muted-foreground"
+                >
+                  remove
+                </Button>
+              </div>
+            </Section>
+          );
+        })}
+
         <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-6 font-mono text-xs text-muted-foreground">
           <span>generated by graveyard → unicorn · AI is opinionated, not omniscient</span>
           <Button size="sm" variant="ghost" onClick={onShare} className="h-7 gap-1.5 font-mono text-xs">
@@ -375,6 +451,15 @@ function MemoPage() {
           </Button>
         </footer>
       </article>
+
+      <FloatingChat
+        repo={repo}
+        analysis={analysis}
+        gtm={gtm}
+        extraVerdicts={extraVerdicts}
+        onAddVerdict={(v) => setExtraVerdicts((prev) => [...prev, v])}
+        onRevisedGtm={(g, note) => setRevisedGtm({ gtm: g, note })}
+      />
     </main>
   );
 }
