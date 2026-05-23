@@ -81,7 +81,7 @@ function UserPage() {
               // top monetizable repos
             </h2>
             <p className="mt-1 text-xs font-mono text-muted-foreground/70">
-              heuristic pre-ranking · AI scoring lands in step 3
+              heuristic pre-ranking · click ⚡ for AI unicorn verdict
             </p>
           </div>
           {reposQ.data && (
